@@ -1,0 +1,4 @@
+# log files
+Logs/
+# config files
+*.cfg
