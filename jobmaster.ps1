@@ -1,6 +1,6 @@
-param ( $logginglevel = 3, $DefaultLogOutputs = 3, $CloseOnExit="no", $script_lib = ".\script_lib.ps1", $globalloglevel = 3, $usr = "", $pwd = "", $skipemail = "", $ConfigLoc = ".\jobmaster.cfg")
+param ( $logginglevel = 3, $DefaultLogOutputs = 3, $CloseOnExit="no", $script_lib = ".\script_lib.ps1", $globalloglevel = 3, $usr = "", $pwd = "", $skipemail = "", $ConfigLoc = ".\jobmaster.cfg", $ConfigFileType = "json")
 
-$myversion = "v.1.9" # (11/19/16)
+$myversion = "v.1.10" # (11/30/16)
 #v.1.0 (04/2016)
 #Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -18,11 +18,12 @@ Log-Message "Script starting on $compname" "global" 7
 Log-Message ("PowerShell Version is: " + ($PSVersionTable.PSVersion.Major) + "." + ($PSVersionTable.PSVersion.Minor))
 Log-Message "Script version is: $myversion"
 Log-Message "Script_lib location is: $script_lib"
-Get-Configdata $ConfigLoc
-Verify-Configdata "mailto,jobsdir,mailfromuser" "jobmaster"
+Get-Configdata $ConfigLoc $ConfigFileType
+$scriptname = "jobmaster"
+Verify-Configdata "mailto,jobsdir,mailfromuser" $scriptname
 
 # get all jobs
-$jobsdir = $configs.perscriptconfigs."jobmaster".jobsdir
+$jobsdir = Get-ConfigValue "jobsdir" $scriptname
 Log-Message "Running all jobs in $jobsdir directory."
 $jobs = Get-ChildItem -Filter "j_*"
 $jobcounter = 0
@@ -89,11 +90,12 @@ Log-Message "---e"
 
 # Send status email. 
 $subject = $subject += "JobMaster daily: $compname."
-$from = $configs.globalconfigs.mailfromuser
+$from = Get-ConfigValue "mailfromuser" $scriptname
 $to = @()
 $cc = @()
 $bcc = @()
-$to += $configs.globalconfigs.mailto
+$to += Get-ConfigValue "mailto" $scriptname
+Log-Message "to is: $to"
 $priority = ""; $mail_attachments = ""
 
 
