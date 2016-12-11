@@ -1,6 +1,6 @@
-param ( $logginglevel = 3, $DefaultLogOutputs = 3, $CloseOnExit="no", $script_lib = ".\script_lib.ps1", $globalloglevel = 3, $usr = "", $pwd = "", $skipemail = "", $ConfigLoc = ".\jobmaster.cfg", $ConfigFileType = "json")
+param ( $logginglevel = 3, $DefaultLogOutputs = 3, $CloseOnExit="no", $script_lib = ".\script_lib.ps1", $globalloglevel = 3, $usr = "", $pwd = "", $ConfigLoc = ".\jobmaster.cfg", $ConfigFileType = "json")
 
-$myversion = "v.1.10" # (11/30/16)
+$myversion = "v.1.11" # (12/11/16)
 #v.1.0 (04/2016)
 #Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -19,8 +19,16 @@ Log-Message ("PowerShell Version is: " + ($PSVersionTable.PSVersion.Major) + "."
 Log-Message "Script version is: $myversion"
 Log-Message "Script_lib location is: $script_lib"
 Get-Configdata $ConfigLoc $ConfigFileType
-$scriptname = "jobmaster"
-Verify-Configdata "mailto,jobsdir,mailfromuser" $scriptname
+$scriptname = "jobmaster.ps1"
+Verify-Configdata "mailto,jobsdir,mailfromuser,smtpport,smtpserver,skipemail" $scriptname
+$skipemail = Get-ConfigValue "skipemail" $scriptname
+$smtpport = Get-ConfigValue "smtpport" $scriptname
+$smtpserver = Get-ConfigValue "smtpserver" $scriptname
+$from = Get-ConfigValue "mailfromuser" $scriptname
+$to = @(); $to += Get-ConfigValue "mailto" $scriptname
+$cc = @(); $bcc = @(); $priority = ""; $mail_attachments = ""
+$subject = @()
+
 
 # get all jobs
 $jobsdir = Get-ConfigValue "jobsdir" $scriptname
@@ -36,12 +44,16 @@ $jobcounter = 0
 Foreach ($onejob in $jobs) {
     sleep 1 #so each log filename is unique
     Log-Message ("running onejob: " + $onejob.name + "." )
-    If ( (-not($onejob.name) -match "_cr") -or ($skipemail -match "yes") ) {
+    $perscriptskipemail = Get-ConfigValue "skipemail" $onejob
+    $res = powershell.exe ($onejob.FullName) -script_lib:$script_lib -skipemail:$perscriptskipemail -usr $usr -pwd $pwd -ConfigLoc:$ConfigLoc -ConfigFileType $ConfigFileType; $excode = $LastExitCode
+    <#
+    If ( (-not($onejob.name) -match "_cr") -or ($perscriptskipemail -match "yes") ) {
         $res = powershell.exe ($onejob.FullName) -skipemail:"yes" -script_lib:$script_lib; $excode = $LastExitCode
     }
     Else { 
         $res = powershell.exe ($onejob.FullName) -script_lib:$script_lib -usr $usr -pwd $pwd; $excode = $LastExitCode
     }
+    #>
     Log-Message ("Exit code was: " + $excode)
     $jobname += $onejob.name
     $jobstatus += $excode
@@ -90,18 +102,9 @@ Log-Message "---e"
 
 # Send status email. 
 $subject = $subject += "JobMaster daily: $compname."
-$from = Get-ConfigValue "mailfromuser" $scriptname
-$to = @()
-$cc = @()
-$bcc = @()
-$to += Get-ConfigValue "mailto" $scriptname
-Log-Message "to is: $to"
-$priority = ""; $mail_attachments = ""
-
-
 If (-not($skipemail -match "yes") ) {
-    sleep 10
-    Try { Send-Mail $usr $pwd $from $to $cc $bcc $subject $priority $false $message $attachments; Log-Message "E-mail sent successfully." }
+    sleep 5
+    Try { Send-Mail $usr $pwd $from $to $cc $bcc $subject $priority $false $message $attachments $smtpport $smtpserver; Log-Message "E-mail sent successfully." }
     Catch [system.exception] { 
         Log-Message ("Problem sending email message. Error is:`n" + $_.Exception.Message) "warn" 
     }
