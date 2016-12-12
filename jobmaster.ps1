@@ -1,6 +1,6 @@
 param ( $logginglevel = 3, $DefaultLogOutputs = 3, $CloseOnExit="no", $script_lib = ".\script_lib.ps1", $globalloglevel = 3, $usr = "", $pwd = "", $ConfigLoc = ".\jobmaster.cfg", $ConfigFileType = "json")
 
-$myversion = "v.1.11" # (12/11/16)
+$myversion = "v.1.12" # (12/11/16)
 #v.1.0 (04/2016)
 #Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -109,6 +109,7 @@ If (-not($skipemail -match "yes") ) {
         Log-Message ("Problem sending email message. Error is:`n" + $_.Exception.Message) "warn" 
     }
 }
+Else { Log-Message "Skipping email" }
 
 Exit-Script "Script done" "global"
 
