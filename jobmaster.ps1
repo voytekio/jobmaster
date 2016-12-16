@@ -1,6 +1,6 @@
 param ( $logginglevel = 3, $DefaultLogOutputs = 3, $CloseOnExit="no", $script_lib = ".\script_lib.ps1", $globalloglevel = 3, $usr = "", $pwd = "", $ConfigLoc = ".\jobmaster.cfg", $ConfigFileType = "json")
 
-$myversion = "v.1.12" # (12/11/16)
+$myversion = "v.1.13" # (12/15/16)
 #v.1.0 (04/2016)
 #Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -45,16 +45,13 @@ Foreach ($onejob in $jobs) {
     sleep 1 #so each log filename is unique
     Log-Message ("running onejob: " + $onejob.name + "." )
     $perscriptskipemail = Get-ConfigValue "skipemail" $onejob
-    $res = powershell.exe ($onejob.FullName) -script_lib:$script_lib -skipemail:$perscriptskipemail -usr $usr -pwd $pwd -ConfigLoc:$ConfigLoc -ConfigFileType $ConfigFileType; $excode = $LastExitCode
-    <#
-    If ( (-not($onejob.name) -match "_cr") -or ($perscriptskipemail -match "yes") ) {
-        $res = powershell.exe ($onejob.FullName) -skipemail:"yes" -script_lib:$script_lib; $excode = $LastExitCode
-    }
-    Else { 
-        $res = powershell.exe ($onejob.FullName) -script_lib:$script_lib -usr $usr -pwd $pwd; $excode = $LastExitCode
-    }
-    #>
+    If  (($onejob.name) -match "_cr") { 
+        $res = powershell.exe ($onejob.FullName) -script_lib:$script_lib -skipemail:$perscriptskipemail -usr $usr -pwd $pwd -ConfigLoc:$ConfigLoc -ConfigFileType $ConfigFileType; $excode = $LastExitCode }
+    Else {
+        $res = powershell.exe ($onejob.FullName) -script_lib:$script_lib -skipemail:$perscriptskipemail -ConfigLoc:$ConfigLoc -ConfigFileType $ConfigFileType; $excode = $LastExitCode }
+ 
     Log-Message ("Exit code was: " + $excode)
+    Log-Message ("Res  was: " + $res)
     $jobname += $onejob.name
     $jobstatus += $excode
 
